@@ -63,6 +63,11 @@ class JointDistribution:
             raise KeyError(f"columns not in proxy data: {missing}")
 
         sub = df[columns].dropna()
+        if len(sub) == 0:
+            raise ValueError(
+                f"no complete proxy records for columns {columns}: every row has a "
+                "missing value in at least one of them, so no joint can be built"
+            )
         categories = {c: sorted(sub[c].astype(str).unique(), key=str) for c in columns}
         index_of = {c: {v: i for i, v in enumerate(categories[c])} for c in columns}
         shape = tuple(len(categories[c]) for c in columns)
@@ -84,6 +89,8 @@ class JointDistribution:
         return float(self.table.sum())
 
     def probabilities(self) -> np.ndarray:
+        if self.total <= 0:
+            raise ValueError("joint distribution has no mass")
         return self.table / self.total
 
     def marginal(self, var: str) -> Dict[object, float]:
@@ -98,6 +105,8 @@ class JointDistribution:
         self, n: int, rng: Union[np.random.Generator, int, None] = None
     ) -> pd.DataFrame:
         """Draw ``n`` backbone rows from the joint distribution."""
+        if self.total <= 0:
+            raise ValueError("joint distribution has no mass")
         generator = rng if isinstance(rng, np.random.Generator) else np.random.default_rng(rng)
         flat = self.table.ravel()
         probs = flat / flat.sum()
@@ -176,6 +185,14 @@ def raking_ipf(
             continue
         vec = vec / vec.sum()
         aligned[var] = (joint.dimensions.index(var), vec)
+
+    if not aligned:
+        raise ValueError(
+            "no target survived label alignment with the joint; nothing to calibrate. "
+            "Check that target variables are backbone dimensions and that category "
+            "labels are harmonized between the proxy and the dictionary. "
+            f"Diagnostics: {msgs}"
+        )
 
     converged = False
     it = 0

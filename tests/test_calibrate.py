@@ -2,12 +2,14 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from synthnccr import DataDictionary
 from synthnccr.calibrate import (
     JointDistribution,
     calibrate_to_dictionary,
     generate_calibrated,
+    raking_ipf,
 )
 
 
@@ -84,3 +86,17 @@ def test_generate_calibrated_shape_and_backbone():
     res = generate_calibrated(d, cal, n=1000, rng=3)
     assert res.data.shape == (1000, 2)
     assert set(res.data.columns) == {"sex", "arm"}
+
+
+def test_from_records_empty_proxy_raises():
+    empty = pd.DataFrame({"sex": [np.nan, np.nan], "arm": [np.nan, np.nan]})
+    with pytest.raises(ValueError, match="no complete proxy records"):
+        JointDistribution.from_records(empty, ["sex", "arm"])
+
+
+def test_raking_ipf_no_aligned_targets_raises():
+    joint = JointDistribution.from_records(proxy_with_association(), ["sex", "arm"])
+    # Target labels that do not overlap the joint's categories at all.
+    bogus = {"sex": {"Nonbinary": 1.0}}
+    with pytest.raises(ValueError, match="nothing to calibrate"):
+        raking_ipf(joint, bogus)
