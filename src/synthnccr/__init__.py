@@ -17,6 +17,14 @@ from .dictionary import DataDictionary, VariableMarginal
 from .constraints import Constraint, AllowedValuesConstraint, RuleSet
 from .generate import generate, GenerationResult
 from .evaluate import marginal_fidelity, overall_score, PROVENANCE_STATEMENT
+from .calibrate import (
+    JointDistribution,
+    CalibrationResult,
+    raking_ipf,
+    calibrate_to_dictionary,
+    targets_from_dictionary,
+    generate_calibrated,
+)
 
 __version__ = "0.0.1"
 
@@ -44,5 +52,11 @@ __all__ = [
     "overall_score",
     "PROVENANCE_STATEMENT",
     "load_nccr_dictionary",
+    "JointDistribution",
+    "CalibrationResult",
+    "raking_ipf",
+    "calibrate_to_dictionary",
+    "targets_from_dictionary",
+    "generate_calibrated",
     "__version__",
 ]
