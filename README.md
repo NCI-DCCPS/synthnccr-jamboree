@@ -18,7 +18,7 @@ privacy-safe by construction: there is no training population to re-identify.
 > marginals. Until then, treat the output as marginal-faithful and rule-consistent,
 > but not yet fully correlation-faithful.
 
-## Why marginals are not enough (stated up front)
+## Why marginals are not enough 
 
 Sampling every variable independently reproduces each variable's distribution
 perfectly but destroys the relationships between variables — the joint distribution
