@@ -95,6 +95,8 @@ class JointDistribution:
 
     def marginal(self, var: str) -> Dict[object, float]:
         """Normalized marginal distribution of one backbone variable."""
+        if self.total <= 0:
+            raise ValueError("joint distribution has no mass")
         axis = self.dimensions.index(var)
         other = tuple(a for a in range(self.table.ndim) if a != axis)
         counts = self.table.sum(axis=other)

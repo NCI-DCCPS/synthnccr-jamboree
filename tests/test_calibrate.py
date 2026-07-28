@@ -100,3 +100,13 @@ def test_raking_ipf_no_aligned_targets_raises():
     bogus = {"sex": {"Nonbinary": 1.0}}
     with pytest.raises(ValueError, match="nothing to calibrate"):
         raking_ipf(joint, bogus)
+
+
+def test_zero_mass_joint_raises_everywhere():
+    jd = JointDistribution(dimensions=["x"], categories={"x": ["a", "b"]}, table=np.zeros(2))
+    with pytest.raises(ValueError, match="no mass"):
+        jd.marginal("x")
+    with pytest.raises(ValueError, match="no mass"):
+        jd.probabilities()
+    with pytest.raises(ValueError, match="no mass"):
+        jd.sample(5)
