@@ -257,6 +257,12 @@ def generate_calibrated(
     """
     if n <= 0:
         raise ValueError("n must be positive")
+    missing = [d for d in joint.dimensions if d not in dictionary.variables]
+    if missing:
+        raise ValueError(
+            f"joint backbone dimensions not present in the dictionary: {missing}. "
+            "Every backbone dimension must correspond to a dictionary variable."
+        )
     seed = rng if isinstance(rng, int) else None
     generator = rng if isinstance(rng, np.random.Generator) else np.random.default_rng(rng)
 

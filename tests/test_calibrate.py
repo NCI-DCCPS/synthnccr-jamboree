@@ -102,6 +102,16 @@ def test_raking_ipf_no_aligned_targets_raises():
         raking_ipf(joint, bogus)
 
 
+def test_generate_calibrated_unknown_backbone_dimension_raises():
+    d = target_dict()
+    # A joint whose dimension ("ghost") is not a variable in the dictionary.
+    ghost = JointDistribution.from_records(
+        pd.DataFrame({"ghost": ["p", "q", "p", "q"]}), ["ghost"]
+    )
+    with pytest.raises(ValueError, match="not present in the dictionary"):
+        generate_calibrated(d, ghost, n=10)
+
+
 def test_zero_mass_joint_raises_everywhere():
     jd = JointDistribution(dimensions=["x"], categories={"x": ["a", "b"]}, table=np.zeros(2))
     with pytest.raises(ValueError, match="no mass"):
