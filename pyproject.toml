@@ -28,9 +28,25 @@ joints = [
     "sdmetrics>=0.14",
     "lifelines>=0.27",
 ]
+# Development: linting and tests.
+dev = [
+    "pytest>=7",
+    "ruff>=0.6",
+]
 
 [project.scripts]
 synthnccr = "synthnccr.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

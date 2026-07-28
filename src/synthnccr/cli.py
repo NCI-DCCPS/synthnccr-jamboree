@@ -15,7 +15,6 @@ from .dictionary import DataDictionary
 from .evaluate import PROVENANCE_STATEMENT, marginal_fidelity, overall_score
 from .generate import generate
 
-
 _REMOTE_KEYWORDS = ("remote", "nccr")
 
 
@@ -148,7 +147,7 @@ def _print_fidelity(d: DataDictionary, df: pd.DataFrame) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="synthnccr",
-        description="Generate privacy-safe synthetic cancer registry cohorts from published marginals.",
+        description="Generate privacy-safe synthetic cancer cohorts from published NCCR metadata.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)

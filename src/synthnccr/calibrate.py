@@ -25,9 +25,8 @@ labels are dropped with a warning.
 
 from __future__ import annotations
 
-import warnings
 from dataclasses import dataclass, field
-from typing import Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Mapping, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -167,7 +166,6 @@ def raking_ipf(
             continue
         cats = joint.categories[var]
         vec = np.array([float(tgt.get(str(c), 0.0)) for c in cats], dtype=float)
-        missing_in_proxy = [str(c) for c in cats if str(c) not in tgt]
         unplaceable = [k for k in tgt if str(k) not in {str(c) for c in cats}]
         if unplaceable:
             msgs.append(
