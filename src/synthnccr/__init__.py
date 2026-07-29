@@ -13,10 +13,18 @@ proxy such as SEER) calibrated to these marginals, which is what makes the
 multivariate structure realistic.
 """
 
+from .calibrate import (
+    CalibrationResult,
+    JointDistribution,
+    calibrate_to_dictionary,
+    generate_calibrated,
+    raking_ipf,
+    targets_from_dictionary,
+)
+from .constraints import AllowedValuesConstraint, Constraint, RuleSet
 from .dictionary import DataDictionary, VariableMarginal
-from .constraints import Constraint, AllowedValuesConstraint, RuleSet
-from .generate import generate, GenerationResult
-from .evaluate import marginal_fidelity, overall_score, PROVENANCE_STATEMENT
+from .evaluate import PROVENANCE_STATEMENT, marginal_fidelity, overall_score
+from .generate import GenerationResult, generate
 
 __version__ = "0.0.1"
 
@@ -44,5 +52,11 @@ __all__ = [
     "overall_score",
     "PROVENANCE_STATEMENT",
     "load_nccr_dictionary",
+    "JointDistribution",
+    "CalibrationResult",
+    "raking_ipf",
+    "calibrate_to_dictionary",
+    "targets_from_dictionary",
+    "generate_calibrated",
     "__version__",
 ]
