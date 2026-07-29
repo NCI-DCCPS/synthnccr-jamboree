@@ -10,6 +10,7 @@ from synthnccr.calibrate import (
     calibrate_to_dictionary,
     generate_calibrated,
     raking_ipf,
+    targets_from_dictionary,
 )
 
 
@@ -110,6 +111,29 @@ def test_generate_calibrated_unknown_backbone_dimension_raises():
     )
     with pytest.raises(ValueError, match="not present in the dictionary"):
         generate_calibrated(d, ghost, n=10)
+
+
+def test_targets_from_dictionary_sums_duplicate_labels():
+    # Two distinct values (int 1 and str "1") render to the same label "1".
+    spec = {
+        "name": "dup",
+        "n_records": 100,
+        "variables": [
+            {
+                "name": "code",
+                "type": "categorical",
+                "values": [
+                    {"value": 1, "count": 30},
+                    {"value": "1", "count": 10},
+                    {"value": 2, "count": 60},
+                ],
+            }
+        ],
+    }
+    d = DataDictionary.from_dict(spec)
+    t = targets_from_dictionary(d, ["code"])["code"]
+    assert abs(t["1"] - 0.40) < 1e-9  # 0.30 + 0.10, not silently overwritten
+    assert abs(t["2"] - 0.60) < 1e-9
 
 
 def test_zero_mass_joint_raises_everywhere():

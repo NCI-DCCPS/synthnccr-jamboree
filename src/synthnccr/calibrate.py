@@ -141,7 +141,13 @@ def targets_from_dictionary(
         if var not in dictionary.variables:
             raise KeyError(f"variable '{var}' not in dictionary")
         vm = dictionary.variables[var]
-        targets[var] = {str(c): float(p) for c, p in zip(vm.categories, vm.probabilities)}
+        # Sum probabilities for categories that render to the same label, so mass
+        # is not silently dropped by later entries overwriting earlier ones.
+        merged: Dict[object, float] = {}
+        for c, p in zip(vm.categories, vm.probabilities):
+            key = str(c)
+            merged[key] = merged.get(key, 0.0) + float(p)
+        targets[var] = merged
     return targets
 
 
@@ -202,7 +208,7 @@ def raking_ipf(
     for it in range(1, max_iter + 1):
         max_dev = 0.0
         total = table.sum()
-        for var, (axis, target_vec) in aligned.items():
+        for axis, target_vec in aligned.values():
             other = tuple(a for a in range(table.ndim) if a != axis)
             current = table.sum(axis=other) / total
             max_dev = max(max_dev, float(np.abs(target_vec - current).max()))
