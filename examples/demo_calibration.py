@@ -20,12 +20,12 @@ import argparse
 import numpy as np
 import pandas as pd
 
-from synthnccr.calibrate import (
+from synthpediatric.calibrate import (
     JointDistribution,
     calibrate_to_dictionary,
     targets_from_dictionary,
 )
-from synthnccr.nccr_rdf import NCCR_INSTANCES_URL, build_dictionary, load_graph
+from synthpediatric.nccr_rdf import NCCR_INSTANCES_URL, build_dictionary, load_graph
 
 BACKBONE = ["sex", "ageRecode19Groups", "icccMajor"]
 YOUNG = {"00 years", "01-04 years", "05-09 years"}

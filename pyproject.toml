@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "synthnccr"
+name = "synthpediatric"
 version = "0.0.1"
 description = "Generate privacy-safe synthetic pediatric/AYA cancer cohorts from published registry marginals."
 readme = "README.md"
@@ -28,6 +28,11 @@ joints = [
     "sdmetrics>=0.14",
     "lifelines>=0.27",
 ]
+# Plotting (static matplotlib + interactive Plotly HTML in the survival demos).
+viz = [
+    "matplotlib>=3.6",
+    "plotly>=5.20",
+]
 # Development: linting and tests.
 dev = [
     "pytest>=7",
@@ -35,7 +40,7 @@ dev = [
 ]
 
 [project.scripts]
-synthnccr = "synthnccr.cli:main"
+synthpediatric = "synthpediatric.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
