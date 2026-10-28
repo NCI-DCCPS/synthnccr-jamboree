@@ -19,6 +19,10 @@ construction: there is no training population to re-identify.
 - **Starting point (in this repo):** metadata-driven marginal generation + clinical
   consistency rules + a marginal-fidelity scorecard, working against the real
   published NCCR metadata.
+- **Now included:** an input-ingestion layer (frequency-table overrides, cohort
+  filters, rare-category oversampling), synthetic survival generation, coverage and
+  vocabulary-conformance reporting, and a config-driven recipe runner that chains the
+  whole pipeline into a single reproducible artifact.
 - **To explore during the event:** joint (cross-variable) calibration using authorized
   aggregate analyses of real NCCR data, an illustrative linked-trajectory demo, and a
   validation framework spanning statistical fidelity, clinical plausibility, and
@@ -30,8 +34,10 @@ construction: there is no training population to re-identify.
 pip install -e ".[rdf]"     # includes rdflib, needed to read the NCCR metadata
 ```
 
-Core generation depends only on numpy, pandas, and pyarrow (Python 3.9+). The `[rdf]`
-extra adds `rdflib` for loading the published NCCR RDF/Turtle metadata.
+Core generation depends only on numpy, pandas, and pyarrow (Python 3.9+). Optional
+extras: `[rdf]` adds `rdflib` for loading the published NCCR RDF/Turtle metadata;
+`[joints]` adds SDV/sdmetrics/lifelines for joint calibration; `[viz]` adds
+matplotlib + Plotly for the survival demos; `[dev]` adds pytest + ruff.
 
 ## Quickstart
 
@@ -62,6 +68,124 @@ Working offline? Download `nccr_instances.ttl` once and pass its path in place o
 
 Available sources: `CTC` (registry), `ABM`, `CCDI`, `COG`, `MCD`, `MCE`, `MCP`,
 `PHARM`, `RO`. Add `--value-mode code` to use raw code notations instead of labels.
+
+## Recipe runner — one config, the whole pipeline
+
+A recipe is a JSON file that pins the metadata source, marginal overrides, cohort
+filters, rare-category oversampling, consistency rules, survival generation, and the
+record count. `synthnccr run` executes it and writes a reproducible run bundle: the
+cohort plus `coverage.csv`, `conformance.csv`, `fidelity.csv`, `dictionary.json`, and
+a `manifest.json` (which records the recipe, its SHA-256, the seed, and tool version).
+Rerun the same recipe next year against refreshed metadata to get a comparable cohort.
+
+```bash
+synthnccr run examples/recipe_ctc.json --out-dir out/recipe_ctc --format csv
+```
+
+```json
+{
+  "name": "CTC synthetic cohort (demo)",
+  "metadata": "remote",
+  "source": "CTC",
+  "n": 20000,
+  "seed": 42,
+  "no_frequency": "uniform",
+  "rules": "examples/ctc_consistency_rules.json",
+  "survival": {
+    "group_col": "icccMajor",
+    "horizon_months": 120,
+    "specs": {
+      "V. Retinoblastoma": {"s5": 0.97},
+      "I. Leukemias, Myeloproliferative And Myelodysplastic Diseases": {"s5": 0.88}
+    }
+  },
+  "outputs": {"dir": "out/recipe_ctc"}
+}
+```
+
+## Ingesting Input-team statistics
+
+The "Input team" produces authoritative numbers (SEER\*Stat exports, platform Report
+JSON, survival stats). The ingestion layer turns those into generator inputs without
+touching the generation code.
+
+```python
+from synthnccr import (
+    dictionary_from_frequencies, override_marginals,
+    cohort_from_dict, apply_cohort,
+)
+from synthnccr.nccr_rdf import build_dictionary, load_graph
+
+# Build a dictionary straight from frequency tables (value -> count or proportion)
+d = dictionary_from_frequencies({
+    "sex": {"Male": 560, "Female": 440},
+    "icccMajor": {"I. Leukemias...": 300, "III. CNS...": 170},
+})
+
+# Or override specific variables in the metadata-derived dictionary with
+# authoritative frequencies (these supersede the published record counts)
+graph = load_graph(["nccr_instances.ttl"])          # or default: the published URL
+d = build_dictionary(graph, "CTC")
+d = override_marginals(d, {"sex": {"Male": 0.56, "Female": 0.44}})
+
+# Restrict generation to a cohort definition (EQUALS / MIN / MAX filters)
+cohort = cohort_from_dict({
+    "name": "ALL ages 7-17",
+    "filters": [
+        {"variable": "icccMajor", "op": "equals",
+         "values": ["I. Leukemias, Myeloproliferative And Myelodysplastic Diseases"]},
+        {"variable": "ageRecodeSingle85p", "op": "min", "threshold": 7},
+        {"variable": "ageRecodeSingle85p", "op": "max", "threshold": 17},
+    ],
+})
+d = apply_cohort(d, cohort)
+```
+
+## Generating synthetic survival
+
+`sample_survival` turns per-group survival specs (exactly the kind of output the Input
+team produces from SEER\*Stat — 5-year survival, median survival, or survival at
+several time points) into synthetic follow-up time + vital status whose Kaplan-Meier
+curves match the input. The `analyze` module recovers the curves, closing the loop.
+
+```python
+from synthnccr import generate, sample_survival, kaplan_meier_by_group
+
+result = generate(d, n=20000, rng=42)
+df = result.data
+months, event = sample_survival(
+    df["icccMajor"].to_numpy(),
+    specs={
+        "V. Retinoblastoma": {"s5": 0.97},
+        "III. CNS...": {"points": {12: 0.95, 60: 0.80, 120: 0.70}},
+    },
+    rng=42, horizon_months=120,
+)
+df["months"], df["event"] = months, event
+curves = kaplan_meier_by_group(df, time_col="months", event_col="event", group_col="icccMajor")
+```
+
+See `examples/demo_survival.py` (static matplotlib) and
+`examples/demo_survival_interactive.py` (interactive Plotly HTML via
+`synthnccr.render`).
+
+## Coverage & conformance reporting
+
+Two "abide by the dictionary" checks keep output honest about its provenance:
+
+- `coverage_report` says, per variable, whether its distribution came from real
+  published NCCR counts (`published`) or was sampled uniformly because no frequencies
+  exist yet (`uniform`) — i.e. exactly which variables still need Input-team numbers.
+- `conformance_report` / `assert_conformant` verify every value in a generated cohort
+  is a permissible value for its variable (the hard guarantee).
+
+```python
+from synthnccr import coverage_report, conformance_report, assert_conformant
+
+print(coverage_report(d))                 # per-variable frequency_source
+print(conformance_report(d, result.data)) # out-of-vocabulary counts (should be 0)
+assert_conformant(d, result.data)         # raises if any value is non-permissible
+```
 
 ## Why marginals are not enough (stated up front)
 
@@ -96,10 +220,8 @@ from synthnccr.nccr_rdf import load_graph, build_dictionary
 
 graph = load_graph(["nccr_instances.ttl"])   # or default: the published URL
 d = build_dictionary(graph, "CTC")           # a DataDictionary for one source
-
 rules = RuleSet.from_json("examples/ctc_consistency_rules.json")
 result = generate(d, n=20000, rng=42, ruleset=rules)
-
 print(result.data.head())
 print(result.repairs)                         # per-rule repair counts
 print(overall_score(marginal_fidelity(d, result.data)))
