@@ -1,4 +1,4 @@
-"""Command line interface: profile / generate / evaluate."""
+"""Command line interface: sources / profile / generate / run / evaluate."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def _load_dictionary(args: argparse.Namespace) -> DataDictionary:
     if not source:
         raise SystemExit(
             "--source is required when loading NCCR RDF metadata (e.g. --source CTC). "
-            "Run 'synthnccr sources <ttl|remote>' to list available datasources."
+            "Run 'synthpediatric sources <ttl|remote>' to list available datasources."
         )
     from .nccr_rdf import build_dictionary, load_graph
 
@@ -116,6 +116,25 @@ def cmd_generate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_run(args: argparse.Namespace) -> int:
+    from .recipe import run_recipe, write_run
+
+    bundle = run_recipe(args.recipe)
+    recipe = bundle["recipe"]
+    out_dir = args.out_dir or (recipe.get("outputs") or {}).get("dir") or "out/run"
+    path = write_run(bundle, out_dir, fmt=args.format)
+
+    df = bundle["data"]
+    result = bundle["result"]
+    print(f"Recipe: {recipe.get('name', '(unnamed)')}")
+    print(f"Generated {len(df):,} records -> {path}/")
+    if result.total_repairs:
+        print(f"Consistency repairs: {result.total_repairs:,}")
+    print("Wrote: cohort, coverage.csv, conformance.csv, fidelity.csv,")
+    print("       dictionary.json, manifest.json")
+    return 0
+
+
 def cmd_evaluate(args: argparse.Namespace) -> int:
     d = _load_dictionary(args)
     path = Path(args.cohort)
@@ -146,7 +165,7 @@ def _print_fidelity(d: DataDictionary, df: pd.DataFrame) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="synthnccr",
+        prog="synthpediatric",
         description="Generate privacy-safe synthetic cancer cohorts from published NCCR metadata.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -190,6 +209,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_rdf_opts(p_gen)
     p_gen.set_defaults(func=cmd_generate)
+
+    p_run = sub.add_parser("run", help="run a generation recipe (config-driven, reproducible)")
+    p_run.add_argument("recipe", help="path to a recipe JSON file")
+    p_run.add_argument("--out-dir", default=None, help="output directory (default: out/run)")
+    p_run.add_argument("--format", choices=("csv", "parquet"), default="csv")
+    p_run.set_defaults(func=cmd_run)
 
     p_eval = sub.add_parser("evaluate", help="score a generated cohort against the dictionary")
     p_eval.add_argument("dictionary", help=dict_help)

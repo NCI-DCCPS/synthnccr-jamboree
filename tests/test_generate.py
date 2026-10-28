@@ -1,7 +1,7 @@
 """Smoke tests for marginal generation, fidelity, and consistency rules."""
 
-from synthnccr import DataDictionary, generate, marginal_fidelity, overall_score
-from synthnccr.constraints import AllowedValuesConstraint, RuleSet
+from synthpediatric import DataDictionary, generate, marginal_fidelity, overall_score
+from synthpediatric.constraints import AllowedValuesConstraint, RuleSet
 
 
 def tiny_dict() -> DataDictionary:

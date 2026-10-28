@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from synthnccr import DataDictionary
-from synthnccr.calibrate import (
+from synthpediatric import DataDictionary
+from synthpediatric.calibrate import (
     JointDistribution,
     calibrate_to_dictionary,
     generate_calibrated,

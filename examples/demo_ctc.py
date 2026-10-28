@@ -19,10 +19,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from synthnccr import generate, marginal_fidelity, overall_score
-from synthnccr.constraints import RuleSet
-from synthnccr.evaluate import PROVENANCE_STATEMENT
-from synthnccr.nccr_rdf import NCCR_INSTANCES_URL, build_dictionary, load_graph
+from synthpediatric import generate, marginal_fidelity, overall_score
+from synthpediatric.constraints import RuleSet
+from synthpediatric.evaluate import PROVENANCE_STATEMENT
+from synthpediatric.nccr_rdf import NCCR_INSTANCES_URL, build_dictionary, load_graph
 
 RULES_FILE = Path(__file__).with_name("ctc_consistency_rules.json")
 

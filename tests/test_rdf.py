@@ -2,7 +2,7 @@
 
 import rdflib
 
-from synthnccr.nccr_rdf import build_dictionary, list_datasources
+from synthpediatric.nccr_rdf import build_dictionary, list_datasources
 
 TTL = """
 @prefix nccr: <https://nccrdataplatform.ccdi.cancer.gov/vocab#> .
