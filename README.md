@@ -93,8 +93,16 @@ synthpediatric evaluate remote --source CTC out/ctc.parquet
 ```
 
 NCCR sources: `CTC` (registry), `ABM`, `CCDI`, `COG`, `MCD`, `MCE`, `MCP`, `PHARM`,
-`RO`. Add `--value-mode code` to use raw code notations instead of labels. For repeat
-runs, download `nccr_instances.ttl` once and pass its path instead of `remote`.
+`RO`. Add `--value-mode code` to use raw code notations instead of labels, or
+`--var-value-mode NAME=code` for one variable. For repeat runs, download
+`nccr_instances.ttl` once and pass its path instead of `remote`.
+
+**Each source is an unlinked, single-source table.** Rows cannot be joined across sources:
+the published metadata has no participant key. Every run says which variables it dropped
+(no value set in the metadata) and which it invented (a value set but no published count),
+and a per-source policy sets a few defaults (MCE blanks its uncounted columns, PHARM reads
+`medicationDispenseDuration` as a code, survival is refused outside CTC). See
+[docs/sources.md](docs/sources.md) for what each of the nine sources gives you.
 
 ## Config-driven runs (`synthpediatric run`)
 
@@ -128,7 +136,8 @@ list, the applied oversampling factors, the config and its hash, so a run can be
 reproduced from it alone. Existing JSON recipes keep working. The full specification,
 rule order and precedence are in [docs/config-and-rules.md](docs/config-and-rules.md);
 profile examples are in `examples/profiles/`. To write your own, start from the tested
-recipes in the [cookbook](docs/cookbook.md).
+recipes in the [cookbook](docs/cookbook.md). The DRAFT clinical consistency battery (unverified)
+is in [docs/battery-verification.md](docs/battery-verification.md).
 
 ## Why marginals are not enough (stated up front)
 
@@ -194,6 +203,8 @@ repaired by resampling). See `examples/ctc_consistency_rules.json`.
   ]
 }
 ```
+
+Compare synthetic cohorts with a real one (discriminator AUC and more): [docs/validation.md](docs/validation.md).
 
 ## Privacy posture
 
