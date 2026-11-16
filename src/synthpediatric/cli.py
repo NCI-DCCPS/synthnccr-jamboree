@@ -199,7 +199,13 @@ def cmd_run(args: argparse.Namespace) -> int:
     outputs = config.get("outputs") or {}
     out_dir = args.out_dir or outputs.get("dir") or "out/run"
     fmt = args.format or outputs.get("format") or "csv"
-    path = write_run(bundle, out_dir, fmt=fmt)
+    try:
+        path = write_run(
+            bundle, out_dir, fmt=fmt, archive=args.archive,
+            archive_name=args.archive_name, keep_csv=True if args.keep_csv else None,
+        )
+    except ConfigError as exc:
+        raise SystemExit(f"config error: {exc}")
 
     df = bundle["data"]
     result = bundle["result"]
@@ -215,6 +221,9 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"Consistency repairs: {result.total_repairs:,}")
     print("Wrote: cohort, coverage.csv, conformance.csv, fidelity.csv,")
     print("       dictionary.json, manifest.json")
+    if bundle.get("validation"):
+        print("       validation_report.json, validation_summary.txt "
+              f"({len(bundle['validation']['skipped'])} requested metric(s) skipped)")
     return 0
 
 
@@ -263,6 +272,12 @@ def _print_fidelity(d: DataDictionary, df: pd.DataFrame) -> None:
 
 def cmd_validate(args: argparse.Namespace) -> int:
     from .validate import run_cli
+
+    return run_cli(args)
+
+
+def cmd_measure(args: argparse.Namespace) -> int:
+    from .measure import run_cli
 
     return run_cli(args)
 
@@ -330,6 +345,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("recipe", help="path to a config .yaml/.yml or .json file")
     p_run.add_argument("--out-dir", default=None, help="output dir (default: outputs.dir)")
     p_run.add_argument(
+        "--archive", choices=("none", "zip"), default=None,
+        help="zip the data CSV (only the CSV, reports stay beside it; default: outputs.archive)",
+    )
+    p_run.add_argument("--archive-name", default=None, help="base name of the zip and its CSV")
+    p_run.add_argument(
+        "--keep-csv", action="store_true", help="with --archive zip, also keep the bare CSV",
+    )
+    p_run.add_argument(
         "--format", choices=("csv", "parquet"), default=None,
         help="cohort file format (default: outputs.format, else csv)",
     )
@@ -359,8 +382,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_val.add_argument("--folds", type=int, default=5, help="discriminator CV folds")
     p_val.add_argument("--metrics", help="comma-separated metric names (default: all)")
     p_val.add_argument("--exclude", help="comma-separated columns to leave out (e.g. IDs)")
+    p_val.add_argument(
+        "--privacy", help="comma-separated privacy metrics, or 'all' (default: none)"
+    )
+    p_val.add_argument("--holdout", help="real records not used to build the synthetic data")
+    p_val.add_argument("--sensitive", help="comma-separated sensitive fields (attribute inference)")
+    p_val.add_argument("--max-records", type=int, default=2000, help="privacy sampling cap")
     _add_rdf_opts(p_val)
     p_val.set_defaults(func=cmd_validate)
+
+    p_meas = sub.add_parser(
+        "measure",
+        help="run in CGC on real data: export disclosure-controlled aggregates for the generator",
+    )
+    p_meas.add_argument("config", help="measure config (.yaml/.yml or .json)")
+    p_meas.add_argument("--out-dir", default=None, help="output directory (default: outputs.dir)")
+    p_meas.add_argument(
+        "--overwrite", action="store_true", help="replace the results of an earlier measure run"
+    )
+    p_meas.set_defaults(func=cmd_measure)
 
     return parser
 
